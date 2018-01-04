@@ -7,6 +7,8 @@ from time import time
 
 import json
 
+import requests
+
 # ledger invoking the script on a by-commodity basis. Also, the only way to get
 # a price from CMC by currency symbol (as opposed to "currency id" that is
 # pretty much internal to CMC) is to get the whole ticker at once.
@@ -23,7 +25,15 @@ import json
 # Path to the cached CMC ticker output
 TMP_TICKER_PATH = '/tmp/ledger-cli-cached_ticker'
 
-cmc_ticker = None
+# The currency the CMC is told to convert the prices into.
+# As of 2018-01-05, valid values are:
+#   "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD",
+#   "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP",
+#   "PKR", "PLN", "RUB", "SEK", "SGD", "THB", "TRY", "TWD", "ZAR".
+# (see https://coinmarketcap.com/api/)
+#
+# `None` for default (USD)
+CONVERT_CURRENCY = 'RUB'
 
 # Returns the cached ticker in dict form or `None` if the cache is old or
 # doesn't exist
@@ -37,10 +47,43 @@ def load_cached_ticker():
             return json.load(open(TMP_TICKER_PATH, mode='r'))
     except OSError:
         # Probably the file doesn't exist
-        # TODO: implement further checks
+        # TODO: implement further checks?
 
         pass
 
     return None
 
-print load_cached_ticker()
+
+def save_cached_ticker(ticker):
+    with open(TMP_TICKER_PATH, mode='w') as f:
+        json.dump(ticker, f)
+
+
+def get_ticker_api_url(currency=None):
+    url = 'https://api.coinmarketcap.com/v1/ticker/'
+
+    if currency is not None:
+        url += '?convert=' + currency
+
+    return url
+
+
+def get_current_ticker(currency=None):
+    ticker = load_cached_ticker()
+
+    if ticker is not None:
+        return ticker
+
+    print "Downloading the CMC ticker..."
+
+    ticker = json.loads(requests.get(get_ticker_api_url(currency)).content)
+
+    save_cached_ticker(ticker)
+
+    return ticker
+
+
+if __name__ == '__main__':
+    ticker = get_current_ticker()
+
+    print str(ticker)[:77]
