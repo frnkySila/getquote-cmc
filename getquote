@@ -1,3 +1,46 @@
 #!/usr/bin/env python
 
-print "hui"
+from sys import argv
+from os import path
+
+from time import time
+
+import json
+
+# ledger invoking the script on a by-commodity basis. Also, the only way to get
+# a price from CMC by currency symbol (as opposed to "currency id" that is
+# pretty much internal to CMC) is to get the whole ticker at once.
+#
+# The latter procedure takes several seconds, so the ticker better be cached
+# between launches, otherwise the delay will grow linearly with the number of
+# different commodities in the ledger, potentially growing to be as large as
+# several minutes or more.
+#
+# To ensure the cached ticker is only valid between launches and prices never go
+# stale because of the caching mechanism, the cached ticker is set to only be
+# good for 30 seconds.
+
+# Path to the cached CMC ticker output
+TMP_TICKER_PATH = '/tmp/ledger-cli-cached_ticker'
+
+cmc_ticker = None
+
+# Returns the cached ticker in dict form or `None` if the cache is old or
+# doesn't exist
+def load_cached_ticker():
+    try:
+        mtime = path.getmtime(TMP_TICKER_PATH)
+
+        ticker = None
+
+        if time() - mtime < 30:
+            return json.load(open(TMP_TICKER_PATH, mode='r'))
+    except OSError:
+        # Probably the file doesn't exist
+        # TODO: implement further checks
+
+        pass
+
+    return None
+
+print load_cached_ticker()
