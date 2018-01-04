@@ -3,7 +3,7 @@
 from sys import argv
 from os import path
 
-from time import time
+import time
 
 import json
 
@@ -43,7 +43,7 @@ def load_cached_ticker():
 
         ticker = None
 
-        if time() - mtime < 30:
+        if time.time() - mtime < 30:
             return json.load(open(TMP_TICKER_PATH, mode='r'))
     except OSError:
         # Probably the file doesn't exist
@@ -96,6 +96,15 @@ def get_ticker_price(ticker, symbol, currency=None):
             return crypto['price' + _get_currency_price_suffix(currency)]
 
 
+def get_formatted(symbol, price, target_currency):
+    return "{} {} {} {}".format(
+        time.strftime('%Y-%m-%d %X'),
+        symbol,
+        price,
+        target_currency
+        )
+
+
 if __name__ == '__main__':
     if len(argv) == 2:
         ticker = get_current_ticker(CONVERT_CURRENCY)
@@ -103,4 +112,4 @@ if __name__ == '__main__':
         price = get_ticker_price(ticker, argv[1], CONVERT_CURRENCY)
 
         if price is not None:
-            print price
+            print get_formatted(argv[1], price, argv[2])
