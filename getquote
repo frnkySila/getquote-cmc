@@ -83,7 +83,24 @@ def get_current_ticker(currency=None):
     return ticker
 
 
-if __name__ == '__main__':
-    ticker = get_current_ticker()
+def _get_currency_price_suffix(currency=None):
+    if currency is None:
+        return ''
+    else:
+        return '_' + currency.lower()
 
-    print str(ticker)[:77]
+
+def get_ticker_price(ticker, symbol, currency=None):
+    for crypto in ticker:
+        if crypto['symbol'] == symbol.upper():
+            return crypto['price' + _get_currency_price_suffix(currency)]
+
+
+if __name__ == '__main__':
+    if len(argv) == 2:
+        ticker = get_current_ticker(CONVERT_CURRENCY)
+
+        price = get_ticker_price(ticker, argv[1], CONVERT_CURRENCY)
+
+        if price is not None:
+            print price
