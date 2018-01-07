@@ -31,17 +31,8 @@ logger.setLevel(logging.DEBUG)
 # good for 30 seconds.
 
 # Path to the cached CMC ticker output
-TMP_TICKER_PATH = '/tmp/ledger-cli-cached_ticker'
+TMP_TICKER_PATH = '/tmp/ledger-getquote-cmc-cached_ticker.json'
 
-# The currency the CMC is told to convert the prices into.
-# As of 2018-01-05, valid values are:
-#   "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD",
-#   "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP",
-#   "PKR", "PLN", "RUB", "SEK", "SGD", "THB", "TRY", "TWD", "ZAR".
-# (see https://coinmarketcap.com/api/)
-#
-# `None` for default (USD)
-CONVERT_CURRENCY = 'RUB'
 
 # Returns the cached ticker in dict form or `None` if the cache is old or
 # doesn't exist
@@ -73,16 +64,16 @@ def save_cached_ticker(ticker):
         json.dump(ticker, f)
 
 
-def get_ticker_api_url(currency=None):
+def get_ticker_api_url(target_currency=None):
     url = 'https://api.coinmarketcap.com/v1/ticker/'
 
-    if currency is not None:
-        url += '?convert=' + currency
+    if target_currency is not None:
+        url += '?convert=' + target_currency
 
     return url
 
 
-def get_current_ticker(currency=None):
+def get_current_ticker(target_currency=None):
     ticker = load_cached_ticker()
 
     if ticker is not None:
@@ -90,40 +81,59 @@ def get_current_ticker(currency=None):
 
     logger.debug("No cached ticker")
 
-    ticker = json.loads(requests.get(get_ticker_api_url(currency)).content)
+    ticker = json.loads(requests.get(get_ticker_api_url(target_currency)).content)
 
     save_cached_ticker(ticker)
 
     return ticker
 
 
-def _get_currency_price_suffix(currency=None):
-    if currency is None:
+def _get_currency_price_suffix(target_currency=None):
+    if target_currency is None:
         return ''
     else:
-        return '_' + currency.lower()
+        return '_' + target_currency.lower()
 
 
-def get_ticker_price(ticker, symbol, currency=None):
+def get_ticker_price(ticker, symbol, target_currency=None):
     for crypto in ticker:
         if crypto['symbol'] == symbol.upper():
-            return crypto['price' + _get_currency_price_suffix(currency)]
-
-
-def get_formatted(symbol, price, target_currency):
-    return "{} {} {} {}".format(
-        time.strftime('%Y-%m-%d %X'),
-        symbol,
-        price,
-        target_currency
-        )
+            return Decimal(crypto['price' + _get_currency_price_suffix(target_currency)])
 
 
 if __name__ == '__main__':
-    if len(argv) == 2:
-        ticker = get_current_ticker(CONVERT_CURRENCY)
+    logger.debug(repr(argv))
 
-        price = get_ticker_price(ticker, argv[1], CONVERT_CURRENCY)
+    start = time.time()
+
+    if len(argv) == 3:
+        source_currency = argv[1]
+
+        # The currency the CMC is told to convert the prices into.
+        # As of 2018-01-05, valid values are:
+        #   "AUD", "BRL", "CAD", "CHF", "CLP", "CNY", "CZK", "DKK", "EUR",
+        #   "GBP", "HKD", "HUF", "IDR", "ILS", "INR", "JPY", "KRW", "MXN",
+        #   "MYR", "NOK", "NZD", "PHP", "PKR", "PLN", "RUB", "SEK", "SGD",
+        #   "THB", "TRY", "TWD", "ZAR".
+        # (see https://coinmarketcap.com/api/)
+        target_currency = argv[2]
+
+        ticker = get_current_ticker(target_currency)
+
+        price = get_ticker_price(ticker, source_currency, target_currency)
 
         if price is not None:
-            print get_formatted(argv[1], price, argv[2])
+            output = "{} {} {:.4f} {}".format(
+                time.strftime('%Y-%m-%d %X'),
+                source_currency,
+                price,
+                target_currency
+                )
+
+            logger.debug(output)
+
+            print o
+        else:
+            logger.debug('NONE')
+
+    logger.debug("Execution took {}s".format(time.time() - start))
