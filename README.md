@@ -3,7 +3,7 @@ This is a `getquote` script that converts cryptocurrencies into fiat according t
 
 #### Requirements
 
-Python 2.6+, `requests`.
+Python 2.6+
 
 #### Installation
 

@@ -8,8 +8,7 @@ import time
 
 import json
 from decimal import Decimal
-
-import requests
+import urllib2
 
 
 logger = logging.getLogger('getquote-cmc')
@@ -82,7 +81,7 @@ def get_current_ticker(target_currency=None):
 
     logger.debug("No cached ticker")
 
-    ticker = json.loads(requests.get(get_ticker_api_url(target_currency)).content)
+    ticker = json.loads(urllib2.urlopen(get_ticker_api_url(target_currency)).read())
 
     save_cached_ticker(ticker)
 
@@ -131,9 +130,7 @@ if __name__ == '__main__':
                 target_currency
                 )
 
-            logger.debug(output)
-
-            print o
+            print output
         else:
             logger.debug('NONE')
 
