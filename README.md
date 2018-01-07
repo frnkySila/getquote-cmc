@@ -28,6 +28,4 @@ ledger -f crypto.dat bal Assets Draw Equity -X RUB -Q
 
 #### Limitations
 
-You can only get rates on top-100 cryptos as that's what CMC gives through their API.
-
-TODO: parse the "View All" page instead of using the API.
+You can only get rates on top-100 cryptos as that's what I request through their API (TODO: fix).
