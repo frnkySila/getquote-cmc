@@ -2,12 +2,20 @@
 
 from sys import argv
 from os import path
+import logging
 
 import time
 
 import json
 
 import requests
+
+
+logger = logging.getLogger('getquote-cmc')
+
+logger.addHandler(logging.FileHandler('/var/tmp/getquote-cmc.log'))
+logger.setLevel(logging.DEBUG)
+
 
 # ledger invoking the script on a by-commodity basis. Also, the only way to get
 # a price from CMC by currency symbol (as opposed to "currency id" that is
@@ -43,8 +51,14 @@ def load_cached_ticker():
 
         ticker = None
 
+        logger.debug("Mtime of cache is {}, time is {}".format(mtime, time.time()))
+
         if time.time() - mtime < 30:
+            logger.debug("Ticker is good")
+
             return json.load(open(TMP_TICKER_PATH, mode='r'))
+
+        logger.debug("Ticker is old")
     except OSError:
         # Probably the file doesn't exist
         # TODO: implement further checks?
@@ -74,7 +88,7 @@ def get_current_ticker(currency=None):
     if ticker is not None:
         return ticker
 
-    print "Downloading the CMC ticker..."
+    logger.debug("No cached ticker")
 
     ticker = json.loads(requests.get(get_ticker_api_url(currency)).content)
 
